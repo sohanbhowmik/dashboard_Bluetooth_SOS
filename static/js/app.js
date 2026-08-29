@@ -1,202 +1,188 @@
 document.addEventListener("DOMContentLoaded", () => {
-    const DEMO_MODE = true;
+  window.MeshMap.init();
 
-    const DUMMY_REQUESTS = [
-        { message_id: "demo-001", original_timestamp: Math.floor(Date.now() / 1000) - 60 * 40, lat: 13.0908, lon: 80.2214, gps_fix_age_seconds: 12, ttl: 4 },
-        { message_id: "demo-002", original_timestamp: Math.floor(Date.now() / 1000) - 60 * 32, lat: 13.0339, lon: 80.2619, gps_fix_age_seconds: 210, ttl: 1 },
-        { message_id: "demo-003", original_timestamp: Math.floor(Date.now() / 1000) - 60 * 25, lat: 13.0475, lon: 80.2154, gps_fix_age_seconds: 8, ttl: 6 },
-        { message_id: "demo-004", original_timestamp: Math.floor(Date.now() / 1000) - 60 * 18, lat: 13.1067, lon: 80.2847, gps_fix_age_seconds: 45, ttl: 2 },
-        { message_id: "demo-005", original_timestamp: Math.floor(Date.now() / 1000) - 60 * 11, lat: 13.0674, lon: 80.2376, gps_fix_age_seconds: 5, ttl: 5 },
-        { message_id: "demo-006", original_timestamp: Math.floor(Date.now() / 1000) - 60 * 4, lat: 13.0827, lon: 80.2707, gps_fix_age_seconds: 300, ttl: 3 }
-    ];
+  let activeRequests = [];
+  let currentFilter = "ALL";
+  let selectedId = null;
+  let gatewayLatLng = null; // set this to your real gateway phone's coords if you track it
 
-    window.MeshMap.init();
+  const requestListEl = document.getElementById('request-list');
+  const requestCountEl = document.getElementById('request-count');
+  const wsStatusDot = document.getElementById('ws-status');
+  const wsStatusText = document.getElementById('ws-text');
+  const detailCard = document.getElementById('detail-card');
 
-    let activeRequests = [];
-
-    const requestListEl = document.getElementById('request-list');
-    const requestCountEl = document.getElementById('request-count');
-    const wsStatusDot = document.getElementById('ws-status');
-    const wsStatusText = document.getElementById('ws-text');
-
-    if (DEMO_MODE) {
-        injectDemoBadge();
+  async function fetchInitialData() {
+    try {
+      const res = await fetch('/api/sos');
+      if (!res.ok) throw new Error("Failed to fetch data");
+      activeRequests = await res.json();
+      render();
+    } catch (err) {
+      console.error("Error fetching initial data:", err);
     }
+  }
 
-    function injectDemoBadge() {
-        const badge = document.createElement('div');
-        badge.className = 'demo-badge';
-        badge.textContent = 'Demo mode — local data only';
-        document.body.appendChild(badge);
+  function severityColor(s) {
+    return { CRITICAL: '#ff6a3d', HIGH: '#ffb347', MEDIUM: '#e8e8e8', LOW: '#6c7078' }[s] || '#e8e8e8';
+  }
+
+  function getFiltered() {
+    return currentFilter === "ALL"
+      ? activeRequests
+      : activeRequests.filter(r => r.severity.toUpperCase() === currentFilter);
+  }
+
+  function updateCounts() {
+    const counts = { CRITICAL: 0, HIGH: 0, MEDIUM: 0, LOW: 0 };
+    activeRequests.forEach(r => {
+      const sev = r.severity.toUpperCase();
+      if (counts[sev] !== undefined) counts[sev]++;
+    });
+    document.getElementById('count-all').textContent = activeRequests.length;
+    document.getElementById('count-critical').textContent = counts.CRITICAL;
+    document.getElementById('count-high').textContent = counts.HIGH;
+    document.getElementById('count-medium').textContent = counts.MEDIUM;
+    document.getElementById('count-low').textContent = counts.LOW;
+    requestCountEl.textContent = `(${activeRequests.length})`;
+
+    const allNodes = new Set();
+    activeRequests.forEach(r => (r.hops || []).forEach(h => allNodes.add(h)));
+    document.getElementById('count-nodes').textContent = allNodes.size;
+    document.getElementById('mesh-nodes').textContent = allNodes.size;
+    document.getElementById('mesh-signal').textContent = allNodes.size > 0 ? '●' : '○';
+    document.getElementById('mesh-sync').textContent =
+      new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  }
+
+  function render() {
+    activeRequests.sort((a, b) => b.original_timestamp - a.original_timestamp);
+    updateCounts();
+
+    const filtered = getFiltered();
+    requestListEl.innerHTML = '';
+
+    filtered.forEach(req => {
+      const sev = req.severity.toUpperCase();
+      const dateStr = new Date(req.original_timestamp * 1000)
+        .toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      const hops = req.hops || [];
+      const trail = hops.length > 0
+        ? `${hops.length} hop${hops.length > 1 ? 's' : ''}: ${[...hops, 'Gateway'].join(' → ')}`
+        : 'Direct to gateway';
+
+      const card = document.createElement('div');
+      card.className = `request-card severity-${sev}`;
+      card.id = `card-${req.message_id}`;
+      card.innerHTML = `
+        <div class="card-top">
+          <span class="req-type">${req.request_type}</span>
+          <span class="req-time">${dateStr}</span>
+        </div>
+        <div class="req-meta">
+          <span>${req.message_id}</span>
+          <span>TTL ${req.ttl}</span>
+        </div>
+        <div class="hop-trail">${trail}</div>
+      `;
+      card.onclick = () => selectRequest(req.message_id);
+      requestListEl.appendChild(card);
+    });
+
+    window.MeshMap.renderMarkers(filtered, selectRequest);
+  }
+
+  function selectRequest(id) {
+    selectedId = id;
+    const req = activeRequests.find(r => r.message_id === id);
+    if (!req) return;
+    window.MeshMap.drawRoute(gatewayLatLng, req);
+    window.MeshMap.flyTo(req.lat, req.lon, 16);
+    showDetail(req);
+  }
+
+  function showDetail(req) {
+    detailCard.style.display = 'block';
+    const tag = document.getElementById('detail-tag');
+    tag.textContent = req.severity.toUpperCase();
+    tag.style.color = severityColor(req.severity.toUpperCase());
+    document.getElementById('detail-title').textContent = req.request_type;
+    const hops = req.hops || [];
+    const trail = hops.length ? [...hops, 'Gateway'].join(' → ') : 'Direct to gateway';
+    document.getElementById('detail-sub').textContent =
+      `ID ${req.message_id} · TTL ${req.ttl} · ${trail}`;
+    document.getElementById('detail-resolve').onclick = () => markAsCompleted(req.message_id);
+    document.getElementById('detail-close').onclick = () => {
+      detailCard.style.display = 'none';
+      window.MeshMap.drawRoute(null, null);
+    };
+  }
+
+  async function markAsCompleted(messageId) {
+    try {
+      await fetch(`/api/sos/${messageId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      detailCard.style.display = 'none';
+    } catch (err) {
+      console.error("Failed to mark as completed:", err);
     }
+  }
 
-    function formatRadius(radiusM) {
-        return radiusM >= 1000 ? `${(radiusM / 1000).toFixed(1)} km` : `${Math.round(radiusM)} m`;
-    }
+  document.querySelectorAll('#severity-filters li').forEach(li => {
+    li.addEventListener('click', () => {
+      document.querySelectorAll('#severity-filters li').forEach(x => x.classList.remove('active'));
+      li.classList.add('active');
+      currentFilter = li.dataset.filter;
+      render();
+    });
+  });
 
-    async function fetchInitialData() {
-        if (DEMO_MODE) {
-            activeRequests = JSON.parse(JSON.stringify(DUMMY_REQUESTS));
-            renderUI();
-            return;
-        }
+  function connectWebSocket() {
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const wsUrl = `${protocol}//${window.location.host}/ws`;
+    const ws = new WebSocket(wsUrl);
 
-        try {
-            const res = await fetch('/api/sos');
-            if (!res.ok) throw new Error("Failed to fetch data");
-            const data = await res.json();
-            activeRequests = data;
-            renderUI();
-        } catch (err) {
-            console.error("Error fetching initial data:", err);
-        }
-    }
+    ws.onopen = () => {
+      wsStatusDot.className = "status-dot connected";
+      wsStatusText.textContent = "Connected";
+    };
 
-    function renderUI() {
-        // Ascending — first SOS received sits at the top of the queue.
-        activeRequests.sort((a, b) => a.original_timestamp - b.original_timestamp);
-
-        requestCountEl.textContent = activeRequests.length;
-        requestListEl.innerHTML = '';
-
-        if (activeRequests.length === 0) {
-            const empty = document.createElement('div');
-            empty.className = 'request-list-empty';
-            empty.textContent = 'No active signals.';
-            requestListEl.appendChild(empty);
-        }
-
-        activeRequests.forEach((req, index) => {
-            window.MeshMap.addMarker(req);
-
-            const dateStr = new Date(req.original_timestamp * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-
-            const fixAge = req.gps_fix_age_seconds;
-            const isStale = typeof fixAge === 'number' && fixAge > 90;
-            const fixAgeLabel = typeof fixAge === 'number'
-                ? (fixAge < 60 ? `${fixAge}s before send` : `${Math.round(fixAge / 60)}m before send`)
-                : 'unknown';
-
-            // Same estimate map.js uses for the circle, so sidebar and map
-            // never disagree on the radius shown for the same signal.
-            const radiusM = window.MeshMap.estimateRadiusMeters(fixAge);
-            const radiusLabel = formatRadius(radiusM);
-
-            const card = document.createElement('div');
-            card.className = 'request-card';
-            card.id = `card-${req.message_id}`;
-
-            card.onclick = (e) => {
-                if (e.target.type !== 'checkbox') {
-                    window.MeshMap.flyToMarker(req.message_id);
-                }
-            };
-
-            card.innerHTML = `
-                <div class="card-queue-number">${index + 1}</div>
-                <div class="card-checkbox">
-                    <input type="checkbox" data-id="${req.message_id}" title="Mark as Completed">
-                </div>
-                <div class="card-content">
-                    <div class="card-header">
-                        <span class="req-type">SOS Signal</span>
-                        <span class="req-time">${dateStr}</span>
-                    </div>
-                    <div class="req-meta">ID ${req.message_id} · relayed ${req.ttl} hop${req.ttl === 1 ? '' : 's'}</div>
-                    <div class="req-location">
-                        <span class="loc-label">GPS</span>${req.lat.toFixed(4)}, ${req.lon.toFixed(4)}
-                        <br>
-                        <span class="loc-label">Fix captured</span><span class="${isStale ? 'loc-stale' : ''}">${fixAgeLabel}${isStale ? ' — may be stale' : ''}</span>
-                        <br>
-                        <span class="loc-label">Est. radius</span>~${radiusLabel} <span style="opacity:0.6">(worst-case, based on fix age)</span>
-                    </div>
-                </div>
-            `;
-
-            requestListEl.appendChild(card);
-        });
-
-        document.querySelectorAll('.card-checkbox input').forEach(box => {
-            box.addEventListener('change', async (e) => {
-                if (e.target.checked) {
-                    const msgId = e.target.getAttribute('data-id');
-                    await markAsCompleted(msgId);
-                }
-            });
-        });
-    }
-
-    async function markAsCompleted(messageId) {
-        if (DEMO_MODE) {
-            activeRequests = activeRequests.filter(r => r.message_id !== messageId);
-            window.MeshMap.removeMarker(messageId);
-            renderUI();
-            return;
-        }
-
-        try {
-            await fetch(`/api/sos/${messageId}`, {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' }
-            });
-        } catch (err) {
-            console.error("Failed to mark as completed:", err);
-            const checkbox = document.querySelector(`input[data-id="${messageId}"]`);
-            if (checkbox) checkbox.checked = false;
-        }
-    }
-
-    function connectWebSocket() {
-        if (DEMO_MODE) {
-            wsStatusDot.className = "status-dot connected";
-            wsStatusText.textContent = "Connected (demo)";
-            return;
-        }
-
-        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-        const wsUrl = `${protocol}//${window.location.host}/ws`;
-        const ws = new WebSocket(wsUrl);
-
-        ws.onopen = () => {
-            wsStatusDot.className = "status-dot connected";
-            wsStatusText.textContent = "Connected";
-        };
-
-        ws.onmessage = (event) => {
-            try {
-                const payload = JSON.parse(event.data);
-
-                if (payload.type === "new") {
-                    payload.data.forEach(newReq => {
-                        if (!activeRequests.find(r => r.message_id === newReq.message_id)) {
-                            activeRequests.push(newReq);
-                        }
-                    });
-                    renderUI();
-                } else if (payload.type === "removed") {
-                    activeRequests = activeRequests.filter(r => r.message_id !== payload.message_id);
-                    window.MeshMap.removeMarker(payload.message_id);
-                    renderUI();
-                }
-            } catch (err) {
-                console.error("Error parsing WebSocket message", err);
+    ws.onmessage = (event) => {
+      try {
+        const payload = JSON.parse(event.data);
+        if (payload.type === "new") {
+          payload.data.forEach(newReq => {
+            if (!activeRequests.find(r => r.message_id === newReq.message_id)) {
+              activeRequests.push(newReq);
             }
-        };
+          });
+          render();
+        } else if (payload.type === "removed") {
+          activeRequests = activeRequests.filter(r => r.message_id !== payload.message_id);
+          if (selectedId === payload.message_id) detailCard.style.display = 'none';
+          render();
+        }
+      } catch (err) {
+        console.error("Error parsing WebSocket message", err);
+      }
+    };
 
-        ws.onclose = () => {
-            wsStatusDot.className = "status-dot disconnected";
-            wsStatusText.textContent = "Disconnected — retrying...";
-            setTimeout(connectWebSocket, 3000);
-        };
+    ws.onclose = () => {
+      wsStatusDot.className = "status-dot disconnected";
+      wsStatusText.textContent = "Disconnected - Retrying...";
+      setTimeout(connectWebSocket, 3000);
+    };
 
-        ws.onerror = (err) => {
-            console.error("WebSocket error:", err);
-            ws.close();
-        };
-    }
+    ws.onerror = (err) => {
+      console.error("WebSocket error:", err);
+      ws.close();
+    };
+  }
 
-    (async () => {
-        await fetchInitialData();
-        connectWebSocket();
-    })();
+  (async () => {
+    await fetchInitialData();
+    connectWebSocket();
+  })();
 });
