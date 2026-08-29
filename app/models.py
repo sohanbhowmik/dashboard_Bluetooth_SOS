@@ -8,9 +8,11 @@ class SosPacketIn(BaseModel):
     received_timestamp: Optional[int] = None
     lat: float = Field(..., ge=-90, le=90)
     lon: float = Field(..., ge=-180, le=180)
-    severity: Literal["low", "medium", "high", "critical"]
-    request_type: str
+    severity: str  # self-signaled urgency, not a diagnosis of the emergency
+    request_type: str = "SOS SIGNAL"  # unclassified until a responder arrives on scene
     ttl: int = Field(..., ge=0)
+    location_source: Literal["GPS FIX", "IP GEO"] = "GPS FIX"
+    ip_address: Optional[str] = None  # only meaningful when location_source is "IP GEO"
 
 
 class SosPacketDB(BaseModel):
@@ -22,10 +24,12 @@ class SosPacketDB(BaseModel):
     severity: str
     request_type: str
     ttl: int
-    status: Literal["active", "resolved", "expired"] = "active"
+    location_source: Literal["GPS FIX", "IP GEO"] = "GPS FIX"
+    ip_address: Optional[str] = None
+    status: Literal["pending", "completed"] = "pending"
 
     model_config = ConfigDict(populate_by_name=True)
 
 
 class SosPacketUpdate(BaseModel):
-    status: Literal["active", "resolved", "expired"]
+    status: Literal["pending", "completed"]
