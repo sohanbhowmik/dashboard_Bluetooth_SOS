@@ -22,10 +22,6 @@ window.MeshMap = (function() {
     }).addTo(map);
     markersLayer = L.layerGroup().addTo(map);
 
-    L.marker([gateway.lat, gateway.lon], {
-      icon: L.divIcon({ className: '', html: '<div class="mesh-marker">GW</div>', iconSize: [24, 24] })
-    }).addTo(map).bindPopup("Gateway phone — uploads queued SOS packets");
-
     document.getElementById('btn-locate').onclick = () => {
       if (markersLayer.getLayers().length) map.fitBounds(markersLayer.getBounds().pad(0.3));
     };
@@ -35,10 +31,6 @@ window.MeshMap = (function() {
 
   function renderMarkers(requests, gateway, onClick) {
     markersLayer.clearLayers();
-
-    L.marker([gateway.lat, gateway.lon], {
-      icon: L.divIcon({ className: '', html: '<div class="mesh-marker">GW</div>', iconSize: [24, 24] })
-    }).addTo(markersLayer);
 
     requests.forEach((req, i) => {
       const color = severityColor(req.severity);
