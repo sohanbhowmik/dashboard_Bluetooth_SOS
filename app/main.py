@@ -66,4 +66,6 @@ async def websocket_endpoint(websocket: WebSocket):
         ws_manager.disconnect(websocket)
 
 # Mount Static Files (Must be done after API routes to avoid overriding them)
+# NOTE: This expects index.html to live INSIDE the static/ folder, not at project root.
+# With html=True, FastAPI serves static/index.html automatically at "/".
 app.mount("/", StaticFiles(directory="static", html=True), name="static")

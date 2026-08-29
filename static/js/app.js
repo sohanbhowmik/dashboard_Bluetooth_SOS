@@ -17,7 +17,7 @@ document.addEventListener("DOMContentLoaded", () => {
             const res = await fetch('/api/sos');
             if (!res.ok) throw new Error("Failed to fetch data");
             const data = await res.json();
-            
+
             activeRequests = data;
             renderUI();
         } catch (err) {
@@ -29,24 +29,24 @@ document.addEventListener("DOMContentLoaded", () => {
     function renderUI() {
         // Sort descending by original_timestamp (newest first)
         activeRequests.sort((a, b) => b.original_timestamp - a.original_timestamp);
-        
+
         // Update Count
         requestCountEl.textContent = activeRequests.length;
-        
+
         // Clear current list
         requestListEl.innerHTML = '';
-        
+
         activeRequests.forEach(req => {
             // Render map marker
             window.MeshMap.addMarker(req);
 
             // Create sidebar card
             const dateStr = new Date(req.original_timestamp * 1000).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', second:'2-digit'});
-            
+
             const card = document.createElement('div');
             card.className = `request-card severity-${req.severity.toUpperCase()}`;
             card.id = `card-${req.message_id}`;
-            
+
             // Allow clicking the card body to fly to marker
             card.onclick = (e) => {
                 // Prevent trigger if clicking the checkbox
@@ -70,7 +70,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     </div>
                 </div>
             `;
-            
+
             requestListEl.appendChild(card);
         });
 
@@ -116,7 +116,7 @@ document.addEventListener("DOMContentLoaded", () => {
         ws.onmessage = (event) => {
             try {
                 const payload = JSON.parse(event.data);
-                
+
                 if (payload.type === "new") {
                     // Add new requests, ensuring we don't duplicate existing ones
                     payload.data.forEach(newReq => {
@@ -125,14 +125,14 @@ document.addEventListener("DOMContentLoaded", () => {
                         }
                     });
                     renderUI();
-                } 
+                }
                 else if (payload.type === "removed") {
                     // Remove from active array
                     activeRequests = activeRequests.filter(r => r.message_id !== payload.message_id);
-                    
+
                     // Remove from Map
                     window.MeshMap.removeMarker(payload.message_id);
-                    
+
                     // Re-render UI
                     renderUI();
                 }
@@ -154,7 +154,10 @@ document.addEventListener("DOMContentLoaded", () => {
         };
     }
 
-    // Start App
-    fetchInitialData();
-    connectWebSocket();
+    // Start App — fetch initial state first, then open the live connection,
+    // to avoid a race where a WS message arrives mid-fetch and gets overwritten.
+    (async () => {
+        await fetchInitialData();
+        connectWebSocket();
+    })();
 });
