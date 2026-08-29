@@ -72,6 +72,22 @@ body {
     display: flex;
     flex: 1;
     height: calc(100vh - 60px);
+    position: relative;
+}
+
+/* Original flame/wing silhouette background pattern — abstract, not Marvel's Phoenix design */
+.dashboard-container::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160' viewBox='0 0 160 160'%3E%3Cg fill='%23d4af5a' fill-opacity='0.06'%3E%3Cpath d='M80 20 C95 40 110 55 100 80 C120 70 135 90 125 115 C115 135 95 140 80 130 C65 140 45 135 35 115 C25 90 40 70 60 80 C50 55 65 40 80 20 Z'/%3E%3C/g%3E%3C/svg%3E");
+    background-repeat: repeat;
+    background-size: 160px 160px;
+    pointer-events: none;
+    z-index: 0;
 }
 
 /* Sidebar */
@@ -82,6 +98,8 @@ body {
     display: flex;
     flex-direction: column;
     border-right: 1px solid var(--border-color);
+    position: relative;
+    z-index: 1;
 }
 
 .sidebar-header {
@@ -201,6 +219,8 @@ body {
     width: 65%;
     flex: 1;
     background-color: #10140f;
+    position: relative;
+    z-index: 1;
 }
 
 #map {
