@@ -1,30 +1,20 @@
-/* ============================================================
-   DISASTER MESH — DASHBOARD THEME
-   Neutral dark ops palette. No severity color-coding: we don't
-   know the nature or urgency of an unclassified SOS ping, so
-   the UI doesn't pretend to. Order is purely chronological —
-   oldest (first received) signal sits at the top of the queue.
-   ============================================================ */
-
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
-
 :root {
-    --bg: #0b0d10;
-    --panel: #12151a;
-    --panel-raised: #171b21;
-    --border: #23272e;
-    --border-strong: #333944;
+    --bg-dark: #1a1f1a;
+    --bg-panel: #232b23;
+    --text-primary: #f0ead6;
+    --text-secondary: #b8a888;
+    --border-color: #3d4a3d;
+    --color-critical: #d4634a;
+    --color-high: #d4a03c;
+    --color-medium: #c9b458;
+    --color-low: #6ba888;
 
-    --text-primary: #e8eaed;
-    --text-secondary: #9aa1ac;
-    --text-faint: #5b6270;
-
-    --accent: #4f8cff;
-    --accent-dim: #2c4a80;
-    --live: #34d399;
-
-    --font-body: 'Inter', system-ui, sans-serif;
-    --font-mono: 'JetBrains Mono', 'Courier New', monospace;
+    /* Jean Grey palette accents */
+    --jg-green: #4a7c59;
+    --jg-green-light: #7aab7f;
+    --jg-gold: #d4af5a;
+    --jg-gold-light: #e6cd8a;
+    --jg-flame: #b5563f;
 }
 
 * {
@@ -33,13 +23,9 @@
     padding: 0;
 }
 
-html, body {
-    height: 100%;
-}
-
 body {
-    font-family: var(--font-body);
-    background-color: var(--bg);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background-color: var(--bg-dark);
     color: var(--text-primary);
     height: 100vh;
     display: flex;
@@ -47,275 +33,185 @@ body {
     overflow: hidden;
 }
 
-/* ---------------------------------------------------------
-   Header
---------------------------------------------------------- */
+/* Header */
 .app-header {
-    background-color: var(--panel);
-    padding: 0 1.5rem;
+    background: linear-gradient(135deg, var(--bg-panel) 0%, #2a3628 100%);
+    padding: 1rem 2rem;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    border-bottom: 1px solid var(--border);
-    height: 56px;
+    border-bottom: 2px solid var(--jg-gold);
+    height: 60px;
 }
 
 .app-header h1 {
-    font-size: 1rem;
+    font-size: 1.25rem;
     font-weight: 600;
-    letter-spacing: 0.01em;
-    color: var(--text-primary);
+    color: var(--jg-gold-light);
+    letter-spacing: 0.02em;
 }
 
 .status-indicator {
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    font-size: 0.8rem;
-    color: var(--text-secondary);
+    font-size: 0.9rem;
 }
 
 .status-dot {
-    width: 7px;
-    height: 7px;
+    width: 10px;
+    height: 10px;
     border-radius: 50%;
 }
-.status-dot.connected { background-color: var(--live); }
-.status-dot.disconnected { background-color: #f26161; }
-.status-dot.connecting { background-color: #e8b23a; }
+.status-dot.connected { background-color: var(--jg-green-light); }
+.status-dot.disconnected { background-color: var(--color-critical); }
+.status-dot.connecting { background-color: var(--jg-gold); }
 
-/* ---------------------------------------------------------
-   Layout
---------------------------------------------------------- */
+/* Dashboard Layout */
 .dashboard-container {
     display: flex;
     flex: 1;
-    height: calc(100vh - 56px);
+    height: calc(100vh - 60px);
 }
 
+/* Sidebar */
 .sidebar {
-    width: 40%;
-    min-width: 340px;
-    background-color: var(--panel);
+    width: 35%;
+    min-width: 300px;
+    background-color: var(--bg-panel);
     display: flex;
     flex-direction: column;
-    border-right: 1px solid var(--border);
+    border-right: 1px solid var(--border-color);
 }
 
 .sidebar-header {
-    padding: 1rem 1.25rem;
-    border-bottom: 1px solid var(--border);
+    padding: 1rem;
+    border-bottom: 1px solid var(--border-color);
 }
 
 .sidebar-header h2 {
-    font-size: 0.85rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    color: var(--text-secondary);
-}
-
-.sidebar-header h2 span {
-    color: var(--text-primary);
+    font-size: 1.1rem;
+    font-weight: 500;
+    color: var(--jg-gold-light);
 }
 
 .request-list {
     flex: 1;
     overflow-y: auto;
-    padding: 0.75rem;
+    padding: 1rem;
     display: flex;
     flex-direction: column;
-    gap: 0.5rem;
+    gap: 0.75rem;
 }
 
-.request-list::-webkit-scrollbar { width: 8px; }
-.request-list::-webkit-scrollbar-track { background: transparent; }
-.request-list::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 4px; }
-
-.request-list-empty {
-    font-size: 0.85rem;
-    color: var(--text-faint);
-    padding: 1rem 0.5rem;
-}
-
-/* ---------------------------------------------------------
-   Request cards — plain, legible, no severity color-coding.
-   The only accent is a queue number, since order (first
-   received first) is the one thing we actually know.
---------------------------------------------------------- */
+/* Request Cards */
 .request-card {
-    background-color: var(--panel-raised);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 0.85rem 1rem;
+    background-color: #2c352a;
+    border-radius: 6px;
+    padding: 1rem;
     display: flex;
-    gap: 0.85rem;
+    gap: 1rem;
     cursor: pointer;
-    transition: border-color 0.15s ease, background-color 0.15s ease;
+    transition: transform 0.1s ease, background-color 0.2s ease;
+    border-left: 5px solid transparent;
 }
 
 .request-card:hover {
-    border-color: var(--border-strong);
-    background-color: #1b2029;
+    background-color: #37402f;
+    transform: translateX(2px);
 }
 
-.card-queue-number {
-    flex-shrink: 0;
-    width: 1.6rem;
-    height: 1.6rem;
-    border-radius: 6px;
-    background: var(--accent-dim);
-    color: var(--accent);
-    font-family: var(--font-mono);
-    font-size: 0.75rem;
-    font-weight: 600;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
+/* Severity Colors */
+.severity-CRITICAL { border-left-color: var(--color-critical); }
+.severity-HIGH { border-left-color: var(--color-high); }
+.severity-MEDIUM { border-left-color: var(--color-medium); }
+.severity-LOW { border-left-color: var(--color-low); }
 
+/* Card Content */
 .card-checkbox {
-    display: flex;
-    align-items: flex-start;
-    padding-top: 0.15rem;
+    margin-top: 0.25rem;
+    position: relative;
 }
 
+/* Custom checkbox styled as an original flame/bird-inspired mark, not the Marvel Phoenix logo */
 .card-checkbox input[type="checkbox"] {
-    width: 1.05rem;
-    height: 1.05rem;
+    appearance: none;
+    -webkit-appearance: none;
+    width: 1.4rem;
+    height: 1.4rem;
     cursor: pointer;
-    accent-color: var(--accent);
+    border: 2px solid var(--jg-gold);
+    border-radius: 4px;
+    background-color: transparent;
+    position: relative;
+    transition: background-color 0.2s ease;
+}
+
+.card-checkbox input[type="checkbox"]:checked {
+    background-color: var(--jg-green);
+    border-color: var(--jg-gold-light);
+}
+
+.card-checkbox input[type="checkbox"]:checked::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 60%;
+    height: 60%;
+    transform: translate(-50%, -55%);
+    background-color: var(--jg-gold-light);
+    /* simple original flame-wing silhouette via clip-path, not any trademarked logo */
+    clip-path: polygon(50% 0%, 65% 30%, 100% 40%, 70% 55%, 80% 100%, 50% 75%, 20% 100%, 30% 55%, 0% 40%, 35% 30%);
 }
 
 .card-content {
     flex: 1;
     display: flex;
     flex-direction: column;
-    gap: 0.35rem;
-    min-width: 0;
+    gap: 0.25rem;
 }
 
 .card-header {
     display: flex;
     justify-content: space-between;
-    align-items: baseline;
+    align-items: center;
 }
 
 .req-type {
     font-weight: 600;
-    font-size: 0.9rem;
+    font-size: 1.05rem;
     color: var(--text-primary);
 }
 
 .req-time {
-    font-size: 0.75rem;
-    color: var(--text-faint);
-    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    color: var(--text-secondary);
 }
 
 .req-meta {
-    font-size: 0.75rem;
+    font-size: 0.85rem;
     color: var(--text-secondary);
-    font-family: var(--font-mono);
+    display: flex;
+    justify-content: space-between;
 }
 
-/* Location detail block — this is the important part, since
-   it's the only concrete fact we have about the situation. */
-.req-location {
-    font-size: 0.75rem;
-    color: var(--text-secondary);
-    background: var(--bg);
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    padding: 0.45rem 0.6rem;
-    line-height: 1.5;
-    font-family: var(--font-mono);
-}
-
-.req-location .loc-label {
-    color: var(--text-faint);
-    text-transform: uppercase;
-    font-size: 0.65rem;
-    letter-spacing: 0.05em;
-    margin-right: 0.35rem;
-}
-
-.req-location .loc-stale {
-    color: #e8b23a;
-}
-
-/* ---------------------------------------------------------
-   Map
---------------------------------------------------------- */
+/* Map */
 .map-container {
-    width: 60%;
+    width: 65%;
     flex: 1;
-    background-color: #05070a;
-    position: relative;
+    background-color: #10140f;
 }
 
 #map {
     width: 100%;
     height: 100%;
-    filter: grayscale(0.6) brightness(0.75) contrast(1.05);
 }
 
+/* Leaflet Overrides for Jean Grey Dark Theme */
 .leaflet-popup-content-wrapper, .leaflet-popup-tip {
-    background: var(--panel-raised);
+    background: var(--bg-panel);
     color: var(--text-primary);
-    font-family: var(--font-body);
-    border: 1px solid var(--border-strong);
-    border-radius: 8px;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
-}
-.leaflet-popup-content { margin: 0.75rem 0.85rem; }
-.leaflet-container a.leaflet-popup-close-button { color: var(--text-secondary); }
-.leaflet-control-zoom a {
-    background: var(--panel-raised) !important;
-    color: var(--text-primary) !important;
-    border-color: var(--border-strong) !important;
-}
-
-/* Marker — single accent color, no severity variants */
-.blip-marker {
-    position: relative;
-    width: 18px;
-    height: 18px;
-}
-.blip-marker .dot {
-    position: absolute;
-    top: 6px; left: 6px;
-    width: 6px; height: 6px;
-    border-radius: 50%;
-    background: var(--accent);
-    box-shadow: 0 0 8px 2px rgba(79, 140, 255, 0.6);
-}
-.blip-marker .ring {
-    position: absolute;
-    inset: 0;
-    border-radius: 50%;
-    border: 1px solid var(--accent);
-    animation: blip-ping 2s ease-out infinite;
-}
-@keyframes blip-ping {
-    0% { transform: scale(0.3); opacity: 0.8; }
-    100% { transform: scale(2.2); opacity: 0; }
-}
-
-/* ---------------------------------------------------------
-   Demo mode badge
---------------------------------------------------------- */
-.demo-badge {
-    position: fixed;
-    bottom: 14px;
-    right: 14px;
-    z-index: 1000;
-    background: var(--panel-raised);
-    border: 1px solid var(--border-strong);
-    color: var(--text-secondary);
-    font-family: var(--font-mono);
-    font-size: 0.7rem;
-    letter-spacing: 0.04em;
-    padding: 0.4rem 0.7rem;
-    border-radius: 6px;
+    box-shadow: 0 3px 14px rgba(0,0,0,0.4);
+    border: 1px solid var(--jg-gold);
 }
