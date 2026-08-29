@@ -7,7 +7,7 @@
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
   integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@600;700&family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/css/style.css">
 </head>
 <body>
@@ -20,28 +20,12 @@
       <div class="brand-sub">Coordination Dashboard</div>
     </div>
   </div>
-  <nav class="nav-links">
-    <a href="#" class="active">Live Map</a>
-    <a href="#">Requests</a>
-    <a href="#">Responders</a>
-    <a href="#">Reports</a>
-  </nav>
-  <div class="nav-right">
-    <div class="ws-pill"><span id="ws-status" class="status-dot connecting"></span><span id="ws-text">Connecting</span></div>
-    <button class="icon-btn" title="Search">🔍</button>
-    <button class="icon-btn" title="Menu">☰</button>
-  </div>
+  <div class="ws-pill"><span id="ws-status" class="status-dot connecting"></span><span id="ws-text">Connecting</span></div>
 </header>
 
 <div class="layout">
   <aside class="sidebar">
     <div class="sidebar-section">
-      <ul class="filter-list">
-        <li><span>All Nodes</span> <span class="count" id="count-nodes">0</span></li>
-        <li><span>Gateways</span> <span class="count" id="count-gateways">1</span></li>
-      </ul>
-    </div>
-    <div class="sidebar-section" style="border-top:1px solid var(--border-color); margin-top:0.5rem;">
       <div class="headline">Active Requests <span class="badge" id="request-count">(0)</span></div>
       <ul class="filter-list" id="severity-filters">
         <li class="active" data-filter="ALL"><span>All Severities</span><span class="count" id="count-all">0</span></li>
@@ -56,9 +40,10 @@
 
   <div class="map-wrap">
     <div id="map"></div>
+    <div class="map-vignette"></div>
 
     <div class="map-controls">
-      <button class="map-btn accent" id="btn-locate" title="Locate">◎</button>
+      <button class="map-btn accent" id="btn-locate" title="Fit all markers">◎</button>
       <button class="map-btn" id="btn-zoom-in" title="Zoom in">+</button>
       <button class="map-btn" id="btn-zoom-out" title="Zoom out">–</button>
     </div>

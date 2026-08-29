@@ -1,10 +1,18 @@
 document.addEventListener("DOMContentLoaded", () => {
-  window.MeshMap.init();
+  // Real gateway coords — replace with the actual gateway phone's location once tracked
+  const GATEWAY = { lat: 37.7729, lon: -122.4164 };
 
-  let activeRequests = [];
+  // Dummy data — remove once fetchInitialData() below is pulling real data
+  const MOCK_DATA = [
+    { message_id: "sos-9f21", lat: 37.7749, lon: -122.4194, severity: "CRITICAL", request_type: "Medical", ttl: 4, hops: ["node-A3", "node-B7"], original_timestamp: Math.floor(Date.now() / 1000) - 120 },
+    { message_id: "sos-7ab0", lat: 37.7799, lon: -122.4294, severity: "HIGH", request_type: "Shelter", ttl: 6, hops: ["node-C1"], original_timestamp: Math.floor(Date.now() / 1000) - 600 },
+    { message_id: "sos-3e88", lat: 37.7699, lon: -122.4094, severity: "MEDIUM", request_type: "Water", ttl: 3, hops: [], original_timestamp: Math.floor(Date.now() / 1000) - 1500 },
+    { message_id: "sos-1c44", lat: 37.7825, lon: -122.4012, severity: "LOW", request_type: "Supplies", ttl: 2, hops: ["node-D9", "node-E2", "node-F5"], original_timestamp: Math.floor(Date.now() / 1000) - 3000 },
+  ];
+
+  let activeRequests = [...MOCK_DATA];
   let currentFilter = "ALL";
   let selectedId = null;
-  let gatewayLatLng = null; // set this to your real gateway phone's coords if you track it
 
   const requestListEl = document.getElementById('request-list');
   const requestCountEl = document.getElementById('request-count');
@@ -12,20 +20,19 @@ document.addEventListener("DOMContentLoaded", () => {
   const wsStatusText = document.getElementById('ws-text');
   const detailCard = document.getElementById('detail-card');
 
-  async function fetchInitialData() {
-    try {
-      const res = await fetch('/api/sos');
-      if (!res.ok) throw new Error("Failed to fetch data");
-      activeRequests = await res.json();
-      render();
-    } catch (err) {
-      console.error("Error fetching initial data:", err);
-    }
-  }
+  window.MeshMap.init(GATEWAY);
 
-  function severityColor(s) {
-    return { CRITICAL: '#ff6a3d', HIGH: '#ffb347', MEDIUM: '#e8e8e8', LOW: '#6c7078' }[s] || '#e8e8e8';
-  }
+  // ---- Uncomment to pull real data instead of MOCK_DATA ----
+  // async function fetchInitialData() {
+  //   try {
+  //     const res = await fetch('/api/sos');
+  //     if (!res.ok) throw new Error("Failed to fetch data");
+  //     activeRequests = await res.json();
+  //     render();
+  //   } catch (err) {
+  //     console.error("Error fetching initial data:", err);
+  //   }
+  // }
 
   function getFiltered() {
     return currentFilter === "ALL"
@@ -48,7 +55,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const allNodes = new Set();
     activeRequests.forEach(r => (r.hops || []).forEach(h => allNodes.add(h)));
-    document.getElementById('count-nodes').textContent = allNodes.size;
     document.getElementById('mesh-nodes').textContent = allNodes.size;
     document.getElementById('mesh-signal').textContent = allNodes.size > 0 ? '●' : '○';
     document.getElementById('mesh-sync').textContent =
@@ -83,20 +89,21 @@ document.addEventListener("DOMContentLoaded", () => {
           <span>${req.message_id}</span>
           <span>TTL ${req.ttl}</span>
         </div>
+        <div class="req-gps">${req.lat.toFixed(4)}, ${req.lon.toFixed(4)}</div>
         <div class="hop-trail">${trail}</div>
       `;
       card.onclick = () => selectRequest(req.message_id);
       requestListEl.appendChild(card);
     });
 
-    window.MeshMap.renderMarkers(filtered, selectRequest);
+    window.MeshMap.renderMarkers(filtered, GATEWAY, selectRequest);
   }
 
   function selectRequest(id) {
     selectedId = id;
     const req = activeRequests.find(r => r.message_id === id);
     if (!req) return;
-    window.MeshMap.drawRoute(gatewayLatLng, req);
+    window.MeshMap.drawRoute(GATEWAY, req);
     window.MeshMap.flyTo(req.lat, req.lon, 16);
     showDetail(req);
   }
@@ -105,29 +112,24 @@ document.addEventListener("DOMContentLoaded", () => {
     detailCard.style.display = 'block';
     const tag = document.getElementById('detail-tag');
     tag.textContent = req.severity.toUpperCase();
-    tag.style.color = severityColor(req.severity.toUpperCase());
+    tag.style.color = window.MeshMap.severityColor(req.severity.toUpperCase());
     document.getElementById('detail-title').textContent = req.request_type;
     const hops = req.hops || [];
     const trail = hops.length ? [...hops, 'Gateway'].join(' → ') : 'Direct to gateway';
     document.getElementById('detail-sub').textContent =
-      `ID ${req.message_id} · TTL ${req.ttl} · ${trail}`;
-    document.getElementById('detail-resolve').onclick = () => markAsCompleted(req.message_id);
+      `ID ${req.message_id} · GPS ${req.lat.toFixed(4)}, ${req.lon.toFixed(4)} · TTL ${req.ttl} · ${trail}`;
+    document.getElementById('detail-resolve').onclick = () => resolveRequest(req.message_id);
     document.getElementById('detail-close').onclick = () => {
       detailCard.style.display = 'none';
       window.MeshMap.drawRoute(null, null);
     };
   }
 
-  async function markAsCompleted(messageId) {
-    try {
-      await fetch(`/api/sos/${messageId}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' }
-      });
-      detailCard.style.display = 'none';
-    } catch (err) {
-      console.error("Failed to mark as completed:", err);
-    }
+  function resolveRequest(id) {
+    // Real version: PATCH /api/sos/{id}, then let the WebSocket "removed" event handle it
+    activeRequests = activeRequests.filter(r => r.message_id !== id);
+    detailCard.style.display = 'none';
+    render();
   }
 
   document.querySelectorAll('#severity-filters li').forEach(li => {
@@ -181,8 +183,13 @@ document.addEventListener("DOMContentLoaded", () => {
     };
   }
 
-  (async () => {
-    await fetchInitialData();
-    connectWebSocket();
-  })();
-});
+  // ---- boot ----
+  render(); // using MOCK_DATA for now
+  setTimeout(() => {
+    wsStatusDot.className = 'status-dot connected';
+    wsStatusText.textContent = 'Connected';
+  }, 900);
+
+  // When ready to go live, swap the two lines above for:
+  // fetchInitialData().then(connectWebSocket);
+})();
