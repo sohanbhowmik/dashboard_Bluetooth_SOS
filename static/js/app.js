@@ -1,14 +1,7 @@
 document.addEventListener("DOMContentLoaded", () => {
-  const GATEWAY = { lat: 37.7729, lon: -122.4164 };
+  const GATEWAY = { lat: 37.7729, lon: -122.4164 }; // update to your real gateway phone's coords if tracked
 
-  const MOCK_DATA = [
-    { message_id: "sos-9f21", lat: 37.7749, lon: -122.4194, severity: "CRITICAL", request_type: "Medical", ttl: 4, hops: ["node-A3", "node-B7"], original_timestamp: Math.floor(Date.now() / 1000) - 120 },
-    { message_id: "sos-7ab0", lat: 37.7799, lon: -122.4294, severity: "HIGH", request_type: "Shelter", ttl: 6, hops: ["node-C1"], original_timestamp: Math.floor(Date.now() / 1000) - 600 },
-    { message_id: "sos-3e88", lat: 37.7699, lon: -122.4094, severity: "MEDIUM", request_type: "Water", ttl: 3, hops: [], original_timestamp: Math.floor(Date.now() / 1000) - 1500 },
-    { message_id: "sos-1c44", lat: 37.7825, lon: -122.4012, severity: "LOW", request_type: "Supplies", ttl: 2, hops: ["node-D9", "node-E2", "node-F5"], original_timestamp: Math.floor(Date.now() / 1000) - 3000 },
-  ];
-
-  let activeRequests = [...MOCK_DATA];
+  let activeRequests = [];
   let currentFilter = "ALL";
   let selectedId = null;
 
@@ -20,16 +13,16 @@ document.addEventListener("DOMContentLoaded", () => {
 
   window.MeshMap.init(GATEWAY);
 
-  // async function fetchInitialData() {
-  //   try {
-  //     const res = await fetch('/api/sos');
-  //     if (!res.ok) throw new Error("Failed to fetch data");
-  //     activeRequests = await res.json();
-  //     render();
-  //   } catch (err) {
-  //     console.error("Error fetching initial data:", err);
-  //   }
-  // }
+  async function fetchInitialData() {
+    try {
+      const res = await fetch('/api/sos');
+      if (!res.ok) throw new Error("Failed to fetch data");
+      activeRequests = await res.json();
+      render();
+    } catch (err) {
+      console.error("Error fetching initial data:", err);
+    }
+  }
 
   function getFiltered() {
     return currentFilter === "ALL"
@@ -122,10 +115,18 @@ document.addEventListener("DOMContentLoaded", () => {
     };
   }
 
-  function resolveRequest(id) {
-    activeRequests = activeRequests.filter(r => r.message_id !== id);
-    detailCard.style.display = 'none';
-    render();
+  async function resolveRequest(id) {
+    try {
+      await fetch(`/api/sos/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      detailCard.style.display = 'none';
+      // No need to manually remove from activeRequests —
+      // the WebSocket "removed" broadcast from the server will do it.
+    } catch (err) {
+      console.error("Failed to mark as completed:", err);
+    }
   }
 
   document.querySelectorAll('#severity-filters li').forEach(li => {
@@ -179,12 +180,8 @@ document.addEventListener("DOMContentLoaded", () => {
     };
   }
 
-  render(); // using MOCK_DATA for now
-  setTimeout(() => {
-    wsStatusDot.className = 'status-dot connected';
-    wsStatusText.textContent = 'Connected';
-  }, 900);
-
-  // When going live, replace the two lines above with:
-  // fetchInitialData().then(connectWebSocket);
+  (async () => {
+    await fetchInitialData();
+    connectWebSocket();
+  })();
 });
