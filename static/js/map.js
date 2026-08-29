@@ -12,7 +12,7 @@ window.MeshMap = (function() {
             maxZoom: 19,
             attribution: '© OpenStreetMap contributors'
         }).addTo(map);
-    }
+    }   
 
     // Add marker for a request
     function addMarker(request) {
