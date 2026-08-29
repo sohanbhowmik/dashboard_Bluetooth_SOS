@@ -14,9 +14,11 @@ window.MeshMap = (function() {
 
   function init(gateway) {
     map = L.map('map', { zoomControl: false }).setView([gateway.lat, gateway.lon], 14);
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+    // Plain OpenStreetMap tiles — free, no API key required, ever.
+    // Dark look comes from a CSS filter on the tile pane (see style.css).
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       maxZoom: 19,
-      attribution: '&copy; OpenStreetMap &copy; CARTO'
+      attribution: '&copy; OpenStreetMap contributors'
     }).addTo(map);
     markersLayer = L.layerGroup().addTo(map);
 
@@ -41,7 +43,6 @@ window.MeshMap = (function() {
     requests.forEach((req, i) => {
       const color = severityColor(req.severity);
 
-      // Radius circle — search/relay zone around the SOS ping
       L.circle([req.lat, req.lon], {
         radius: severityRadius(req.severity),
         color: color,

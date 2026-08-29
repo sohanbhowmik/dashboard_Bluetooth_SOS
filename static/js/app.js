@@ -1,8 +1,6 @@
 document.addEventListener("DOMContentLoaded", () => {
-  // Real gateway coords — replace with the actual gateway phone's location once tracked
   const GATEWAY = { lat: 37.7729, lon: -122.4164 };
 
-  // Dummy data — remove once fetchInitialData() below is pulling real data
   const MOCK_DATA = [
     { message_id: "sos-9f21", lat: 37.7749, lon: -122.4194, severity: "CRITICAL", request_type: "Medical", ttl: 4, hops: ["node-A3", "node-B7"], original_timestamp: Math.floor(Date.now() / 1000) - 120 },
     { message_id: "sos-7ab0", lat: 37.7799, lon: -122.4294, severity: "HIGH", request_type: "Shelter", ttl: 6, hops: ["node-C1"], original_timestamp: Math.floor(Date.now() / 1000) - 600 },
@@ -22,7 +20,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
   window.MeshMap.init(GATEWAY);
 
-  // ---- Uncomment to pull real data instead of MOCK_DATA ----
   // async function fetchInitialData() {
   //   try {
   //     const res = await fetch('/api/sos');
@@ -126,7 +123,6 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function resolveRequest(id) {
-    // Real version: PATCH /api/sos/{id}, then let the WebSocket "removed" event handle it
     activeRequests = activeRequests.filter(r => r.message_id !== id);
     detailCard.style.display = 'none';
     render();
@@ -183,13 +179,12 @@ document.addEventListener("DOMContentLoaded", () => {
     };
   }
 
-  // ---- boot ----
   render(); // using MOCK_DATA for now
   setTimeout(() => {
     wsStatusDot.className = 'status-dot connected';
     wsStatusText.textContent = 'Connected';
   }, 900);
 
-  // When ready to go live, swap the two lines above for:
+  // When going live, replace the two lines above with:
   // fetchInitialData().then(connectWebSocket);
-})();
+});

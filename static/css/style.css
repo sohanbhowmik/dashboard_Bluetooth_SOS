@@ -98,7 +98,10 @@ body {
 
 .map-wrap { position: relative; flex: 1; background: #000; }
 #map { width: 100%; height: 100%; background: #05060a; }
-#map .leaflet-tile-pane { filter: saturate(0.35) brightness(0.55) contrast(1.25) sepia(0.12); }
+/* Plain OSM tiles (free, no API key) inverted + hue-rotated into a dark map */
+#map .leaflet-tile-pane {
+  filter: invert(1) hue-rotate(180deg) saturate(0.4) brightness(0.75) contrast(1.15);
+}
 .map-vignette {
   position: absolute; inset: 0; pointer-events: none; z-index: 400;
   background: radial-gradient(ellipse at center, transparent 40%, rgba(0,0,0,0.65) 100%);
