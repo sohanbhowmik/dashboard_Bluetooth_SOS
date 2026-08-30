@@ -1,26 +1,61 @@
 window.MeshMap = (function() {
     let map = null;
     let gatewayLocation = null;
+    let gatewayMarker = null;
+    let routeLine = null;
     const markers = {};
 
+    // Kept in sync with the --sev-* CSS variables in style.css
     const SEVERITY_COLORS = {
-        CRITICAL: '#ffffff',
-        HIGH: '#d4d4d4',
-        MEDIUM: '#999999',
-        LOW: '#5c5c5c'
+        CRITICAL: '#ff5c5c',
+        HIGH: '#ffb35c',
+        MEDIUM: '#ffe45c',
+        LOW: '#5cffb0'
     };
 
     function severityColor(sev) {
         return SEVERITY_COLORS[sev] || '#999999';
     }
 
+    function escapeHtml(str) {
+        const div = document.createElement('div');
+        div.textContent = String(str);
+        return div.innerHTML;
+    }
+
+    function severityIcon(sev) {
+        return L.divIcon({
+            className: '',
+            html: `<div class="severity-marker" style="background:${severityColor(sev)}"></div>`,
+            iconSize: [16, 16],
+            iconAnchor: [8, 8],
+            popupAnchor: [0, -10]
+        });
+    }
+
     function init(gateway) {
         gatewayLocation = gateway || null;
-        map = L.map('map').setView([0, 0], 2);
+        map = L.map('map').setView(
+            gatewayLocation ? [gatewayLocation.lat, gatewayLocation.lon] : [0, 0],
+            gatewayLocation ? 12 : 2
+        );
+
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             maxZoom: 19,
             attribution: '&copy; OpenStreetMap contributors'
         }).addTo(map);
+
+        if (gatewayLocation) {
+            gatewayMarker = L.marker([gatewayLocation.lat, gatewayLocation.lon], {
+                icon: L.divIcon({
+                    className: '',
+                    html: `<div class="gateway-marker">\uD83D\uDCE1</div>`,
+                    iconSize: [28, 28],
+                    iconAnchor: [14, 14]
+                }),
+                zIndexOffset: 1000
+            }).addTo(map).bindPopup('Gateway');
+        }
     }
 
     // Rebuilds all markers from the current filtered list.
@@ -38,19 +73,24 @@ window.MeshMap = (function() {
         let firstNewMarker = null;
 
         requests.forEach(req => {
-            if (markers[req.message_id]) return; // already on map
-
             const sev = req.severity.toUpperCase();
+
+            if (markers[req.message_id]) {
+                // Already on the map - just make sure severity/icon is current
+                markers[req.message_id].setIcon(severityIcon(sev));
+                return;
+            }
+
             const popupContent = `
-                <div style="font-family: sans-serif;">
-                    <h3 style="margin: 0 0 5px 0;">${req.request_type}</h3>
-                    <p style="margin: 0 0 5px 0; font-size: 12px; color: #aaa;">ID: ${req.message_id}</p>
-                    <p style="margin: 0;"><strong>Severity:</strong> ${req.severity}</p>
-                    <p style="margin: 0;"><strong>TTL:</strong> ${req.ttl}</p>
+                <div style="font-family: sans-serif; min-width: 160px;">
+                    <h3 style="margin: 0 0 5px 0;">${escapeHtml(req.request_type)}</h3>
+                    <p style="margin: 0 0 5px 0; font-size: 12px; color: #aaa;">ID: ${escapeHtml(req.message_id)}</p>
+                    <p style="margin: 0;"><strong>Severity:</strong> ${escapeHtml(req.severity)}</p>
+                    <p style="margin: 0;"><strong>TTL:</strong> ${escapeHtml(req.ttl)}</p>
                 </div>
             `;
 
-            const marker = L.marker([req.lat, req.lon])
+            const marker = L.marker([req.lat, req.lon], { icon: severityIcon(sev) })
                 .bindPopup(popupContent)
                 .addTo(map);
 
@@ -62,7 +102,7 @@ window.MeshMap = (function() {
             if (!firstNewMarker) firstNewMarker = req;
         });
 
-        if (Object.keys(markers).length > 0 && map.getZoom() === 2 && firstNewMarker) {
+        if (Object.keys(markers).length > 0 && map.getZoom() <= 2 && firstNewMarker) {
             map.flyTo([firstNewMarker.lat, firstNewMarker.lon], 13);
         }
     }
@@ -83,9 +123,47 @@ window.MeshMap = (function() {
         if (marker) marker.openPopup();
     }
 
-    // Route line intentionally does nothing — no line is ever drawn.
+    // Draws a dashed line from the SOS origin to the gateway, colored by
+    // severity. Call with (null, null) to clear the current route.
     function drawRoute(gateway, request) {
-        return;
+        if (routeLine) {
+            map.removeLayer(routeLine);
+            routeLine = null;
+        }
+        if (!gateway || !request) return;
+
+        const sev = request.severity.toUpperCase();
+        routeLine = L.polyline(
+            [[request.lat, request.lon], [gateway.lat, gateway.lon]],
+            {
+                color: severityColor(sev),
+                weight: 2,
+                opacity: 0.75,
+                dashArray: '6, 6'
+            }
+        ).addTo(map);
+    }
+
+    function zoomIn() {
+        if (map) map.zoomIn();
+    }
+
+    function zoomOut() {
+        if (map) map.zoomOut();
+    }
+
+    // Fits the map view to every visible marker plus the gateway.
+    function fitAll() {
+        if (!map) return;
+        const points = Object.values(markers).map(m => m.getLatLng());
+        if (gatewayLocation) points.push(L.latLng(gatewayLocation.lat, gatewayLocation.lon));
+
+        if (points.length === 0) return;
+        if (points.length === 1) {
+            map.flyTo(points[0], 14);
+            return;
+        }
+        map.fitBounds(L.latLngBounds(points), { padding: [50, 50] });
     }
 
     return {
@@ -94,6 +172,9 @@ window.MeshMap = (function() {
         removeMarker,
         flyTo,
         drawRoute,
+        zoomIn,
+        zoomOut,
+        fitAll,
         severityColor
     };
 })();

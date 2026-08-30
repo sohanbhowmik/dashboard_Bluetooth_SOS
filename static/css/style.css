@@ -30,7 +30,7 @@
 }
 
 body {
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   background-color: var(--bg-void);
   color: var(--text-primary);
   height: 100vh;
@@ -40,24 +40,40 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-/* ---------- Top bar ---------- */
-.app-header {
-  background-color: transparent;
-  padding: 1.25rem 1.5rem;
+/* ---------- Top nav ---------- */
+.topnav {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  padding: 1.25rem 1.5rem;
   height: 72px;
 }
 
-.app-header h1 {
-  font-size: 1.4rem;
-  font-weight: 600;
-  letter-spacing: -0.01em;
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.brand-mark {
+  font-size: 1.5rem;
+  line-height: 1;
+}
+
+.brand-text {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
   color: var(--text-primary);
 }
 
-.status-indicator {
+.brand-sub {
+  font-size: 0.72rem;
+  color: var(--text-secondary);
+}
+
+.ws-pill {
   display: flex;
   align-items: center;
   gap: 0.5rem;
@@ -75,6 +91,7 @@ body {
   height: 7px;
   border-radius: 50%;
   background-color: var(--text-tertiary);
+  flex-shrink: 0;
 }
 
 .status-dot.connected {
@@ -97,7 +114,7 @@ body {
 }
 
 /* ---------- Layout ---------- */
-.dashboard-container {
+.layout {
   display: flex;
   flex: 1;
   height: calc(100vh - 72px);
@@ -119,57 +136,67 @@ body {
   overflow: hidden;
 }
 
-.sidebar-header {
+.sidebar-section {
   padding: 1.25rem 1.25rem 0.75rem;
 }
 
-.sidebar-header h2 {
+.headline {
   font-size: 1rem;
   font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
   color: var(--text-primary);
 }
 
-/* Severity filter pills */
-#severity-filters {
-  list-style: none;
-  display: flex;
-  gap: 0.4rem;
-  padding: 0 1.25rem 1rem;
-  flex-wrap: wrap;
-}
-
-#severity-filters li {
+.badge {
   font-size: 0.75rem;
   font-weight: 500;
-  padding: 0.4rem 0.75rem;
-  border-radius: 999px;
-  background: var(--bg-pill);
-  border: 1px solid var(--border-color);
+  color: var(--text-tertiary);
+}
+
+/* Severity filter list */
+.filter-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  margin-top: 0.9rem;
+}
+
+.filter-list li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.82rem;
+  font-weight: 500;
+  padding: 0.5rem 0.75rem;
+  border-radius: var(--radius-sm);
   color: var(--text-secondary);
   cursor: pointer;
   transition: all 0.15s ease;
 }
 
-#severity-filters li:hover {
-  border-color: var(--border-hover);
+.filter-list li:hover {
+  background: var(--bg-pill);
   color: var(--text-primary);
 }
 
-#severity-filters li.active {
-  background: rgba(255, 255, 255, 0.12);
+.filter-list li.active {
+  background: rgba(255, 255, 255, 0.1);
   color: var(--text-primary);
-  border-color: var(--border-hover);
 }
 
-/* Mesh stat strip */
-.mesh-stats {
-  display: flex;
-  justify-content: space-between;
-  padding: 0 1.25rem 1rem;
+.filter-list li .count {
   font-size: 0.72rem;
   color: var(--text-tertiary);
-  border-bottom: 1px solid var(--border-color);
-  margin-bottom: 0.5rem;
+  background: var(--bg-pill);
+  padding: 0.1rem 0.55rem;
+  border-radius: 999px;
+}
+
+.filter-list li.active .count {
+  color: var(--text-primary);
 }
 
 /* Request list */
@@ -180,6 +207,8 @@ body {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
+  border-top: 1px solid var(--border-color);
+  margin-top: 0.5rem;
 }
 
 .request-list::-webkit-scrollbar {
@@ -265,7 +294,7 @@ body {
 }
 
 /* ---------- Map ---------- */
-.map-container {
+.map-wrap {
   flex: 1;
   border-radius: var(--radius-lg);
   overflow: hidden;
@@ -278,6 +307,13 @@ body {
   height: 100%;
   background-color: #0b0c0e;
   filter: grayscale(0.6) brightness(0.75) contrast(1.05);
+}
+
+.map-vignette {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  box-shadow: inset 0 0 140px rgba(0, 0, 0, 0.55);
 }
 
 .leaflet-popup-content-wrapper,
@@ -294,7 +330,29 @@ body {
   border-radius: var(--radius-md);
 }
 
-/* Pill-style location label anchored to markers, like the reference image */
+/* Severity-colored marker dot */
+.severity-marker {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.85);
+  box-shadow: 0 0 8px rgba(0, 0, 0, 0.6);
+}
+
+.gateway-marker {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--bg-card);
+  border: 2px solid var(--text-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.9rem;
+  filter: none;
+}
+
+/* Pill-style location label anchored to markers */
 .map-pin-label {
   background: var(--bg-card);
   border: 1px solid var(--border-color);
@@ -308,78 +366,145 @@ body {
   backdrop-filter: blur(10px);
 }
 
-/* ---------- Floating detail/stats card (bottom-right) ---------- */
+/* ---------- Map controls ---------- */
+.map-controls {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  z-index: 500;
+}
+
+.map-btn {
+  width: 34px;
+  height: 34px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+  font-size: 1rem;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(10px);
+  transition: all 0.15s ease;
+}
+
+.map-btn:hover {
+  background: var(--bg-card-hover);
+  border-color: var(--border-hover);
+}
+
+.map-btn.accent {
+  color: var(--up);
+}
+
+/* ---------- Mesh health pill ---------- */
+.mesh-health {
+  position: absolute;
+  bottom: 1.5rem;
+  left: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  background: var(--bg-panel);
+  backdrop-filter: blur(20px);
+  border: 1px solid var(--border-color);
+  border-radius: 999px;
+  padding: 0.6rem 1rem;
+  font-size: 0.72rem;
+  color: var(--text-tertiary);
+  z-index: 500;
+  max-width: 260px;
+}
+
+.mesh-health .signal {
+  font-size: 0.9rem;
+  color: var(--up);
+  flex-shrink: 0;
+}
+
+.mesh-health .meta b {
+  color: var(--text-primary);
+}
+
+/* ---------- Floating detail card (bottom-right) ---------- */
 .detail-card {
   position: absolute;
   bottom: 1.5rem;
   right: 1.5rem;
-  width: 420px;
+  width: 340px;
+  max-width: calc(100% - 3rem);
   background-color: var(--bg-panel);
   backdrop-filter: blur(20px);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-lg);
   padding: 1.25rem 1.4rem;
   box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
-  display: none;
+  z-index: 500;
 }
 
-.detail-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
+.detail-top {
   margin-bottom: 0.9rem;
 }
 
-#detail-tag {
+.detail-tag {
   font-size: 0.68rem;
   font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }
 
-#detail-title {
+.detail-title {
   font-size: 1.05rem;
   font-weight: 600;
   margin: 0.2rem 0 0.35rem;
   color: var(--text-primary);
 }
 
-#detail-sub {
+.detail-sub {
   font-size: 0.75rem;
   color: var(--text-secondary);
   line-height: 1.4;
 }
 
-#detail-close {
-  background: var(--bg-pill);
-  border: 1px solid var(--border-color);
-  color: var(--text-secondary);
-  border-radius: 50%;
-  width: 28px;
-  height: 28px;
-  cursor: pointer;
-  font-size: 0.9rem;
-}
-
-#detail-close:hover {
-  color: var(--text-primary);
-  border-color: var(--border-hover);
-}
-
-#detail-resolve {
+.detail-actions {
+  display: flex;
+  gap: 0.5rem;
   margin-top: 1rem;
-  width: 100%;
-  padding: 0.7rem;
+}
+
+.detail-btn {
+  flex: 1;
+  text-align: center;
+  padding: 0.65rem;
   border-radius: var(--radius-sm);
-  border: none;
-  background: var(--text-primary);
-  color: #0b0c0e;
   font-weight: 600;
   font-size: 0.85rem;
   cursor: pointer;
-  transition: opacity 0.15s ease;
+  transition: opacity 0.15s ease, border-color 0.15s ease, color 0.15s ease;
 }
 
-#detail-resolve:hover {
+.detail-btn.primary {
+  background: var(--text-primary);
+  color: #0b0c0e;
+}
+
+.detail-btn.primary:hover {
   opacity: 0.85;
+}
+
+.detail-btn.ghost {
+  background: var(--bg-pill);
+  border: 1px solid var(--border-color);
+  color: var(--text-secondary);
+}
+
+.detail-btn.ghost:hover {
+  color: var(--text-primary);
+  border-color: var(--border-hover);
 }

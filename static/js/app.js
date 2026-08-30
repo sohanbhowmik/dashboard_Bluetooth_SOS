@@ -13,6 +13,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
   window.MeshMap.init(GATEWAY);
 
+  function escapeHtml(str) {
+    const div = document.createElement('div');
+    div.textContent = String(str);
+    return div.innerHTML;
+  }
+
   async function fetchInitialData() {
     try {
       const res = await fetch('/api/sos');
@@ -63,8 +69,9 @@ document.addEventListener("DOMContentLoaded", () => {
       const dateStr = new Date(req.original_timestamp * 1000)
         .toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
       const hops = req.hops || [];
+      const trailHops = [...hops.map(escapeHtml), 'Gateway'];
       const trail = hops.length > 0
-        ? `${hops.length} hop${hops.length > 1 ? 's' : ''}: ${[...hops, 'Gateway'].join(' → ')}`
+        ? `${hops.length} hop${hops.length > 1 ? 's' : ''}: ${trailHops.join(' → ')}`
         : 'Direct to gateway';
 
       const card = document.createElement('div');
@@ -72,12 +79,12 @@ document.addEventListener("DOMContentLoaded", () => {
       card.id = `card-${req.message_id}`;
       card.innerHTML = `
         <div class="card-top">
-          <span class="req-type">${req.request_type}</span>
+          <span class="req-type">${escapeHtml(req.request_type)}</span>
           <span class="req-time">${dateStr}</span>
         </div>
         <div class="req-meta">
-          <span>${req.message_id}</span>
-          <span>TTL ${req.ttl}</span>
+          <span>${escapeHtml(req.message_id)}</span>
+          <span>TTL ${escapeHtml(req.ttl)}</span>
         </div>
         <div class="req-gps">${req.lat.toFixed(4)}, ${req.lon.toFixed(4)}</div>
         <div class="hop-trail">${trail}</div>
@@ -117,13 +124,20 @@ document.addEventListener("DOMContentLoaded", () => {
 
   async function resolveRequest(id) {
     try {
-      await fetch(`/api/sos/${id}`, {
+      const res = await fetch(`/api/sos/${id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' }
       });
+      if (!res.ok) throw new Error("Failed to mark as completed");
+
       detailCard.style.display = 'none';
-      // No need to manually remove from activeRequests —
-      // the WebSocket "removed" broadcast from the server will do it.
+      window.MeshMap.drawRoute(null, null);
+
+      // Remove locally right away as a safety net, in case the
+      // WebSocket "removed" broadcast is delayed or dropped.
+      activeRequests = activeRequests.filter(r => r.message_id !== id);
+      if (selectedId === id) selectedId = null;
+      render();
     } catch (err) {
       console.error("Failed to mark as completed:", err);
     }
@@ -137,6 +151,14 @@ document.addEventListener("DOMContentLoaded", () => {
       render();
     });
   });
+
+  // Map controls (previously unwired)
+  const btnZoomIn = document.getElementById('btn-zoom-in');
+  const btnZoomOut = document.getElementById('btn-zoom-out');
+  const btnLocate = document.getElementById('btn-locate');
+  if (btnZoomIn) btnZoomIn.addEventListener('click', () => window.MeshMap.zoomIn());
+  if (btnZoomOut) btnZoomOut.addEventListener('click', () => window.MeshMap.zoomOut());
+  if (btnLocate) btnLocate.addEventListener('click', () => window.MeshMap.fitAll());
 
   function connectWebSocket() {
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
@@ -160,7 +182,11 @@ document.addEventListener("DOMContentLoaded", () => {
           render();
         } else if (payload.type === "removed") {
           activeRequests = activeRequests.filter(r => r.message_id !== payload.message_id);
-          if (selectedId === payload.message_id) detailCard.style.display = 'none';
+          if (selectedId === payload.message_id) {
+            detailCard.style.display = 'none';
+            window.MeshMap.drawRoute(null, null);
+            selectedId = null;
+          }
           render();
         }
       } catch (err) {
