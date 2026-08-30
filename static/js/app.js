@@ -155,10 +155,8 @@ document.addEventListener("DOMContentLoaded", () => {
   // Map controls
   const btnZoomIn = document.getElementById('btn-zoom-in');
   const btnZoomOut = document.getElementById('btn-zoom-out');
-  const btnLocate = document.getElementById('btn-locate');
   if (btnZoomIn) btnZoomIn.addEventListener('click', () => window.MeshMap.zoomIn());
   if (btnZoomOut) btnZoomOut.addEventListener('click', () => window.MeshMap.zoomOut());
-  if (btnLocate) btnLocate.addEventListener('click', () => window.MeshMap.fitAll());
 
   function connectWebSocket() {
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
