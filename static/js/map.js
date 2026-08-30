@@ -2,7 +2,6 @@ window.MeshMap = (function() {
     let map = null;
     let gatewayLocation = null;
     let gatewayMarker = null;
-    let routeLine = null;
     const markers = {};
 
     // Kept in sync with the --sev-* CSS variables in style.css
@@ -123,25 +122,10 @@ window.MeshMap = (function() {
         if (marker) marker.openPopup();
     }
 
-    // Draws a dashed line from the SOS origin to the gateway, colored by
-    // severity. Call with (null, null) to clear the current route.
+    // Route line intentionally disabled — kept as a no-op so existing
+    // calls from app.js don't need to change.
     function drawRoute(gateway, request) {
-        if (routeLine) {
-            map.removeLayer(routeLine);
-            routeLine = null;
-        }
-        if (!gateway || !request) return;
-
-        const sev = request.severity.toUpperCase();
-        routeLine = L.polyline(
-            [[request.lat, request.lon], [gateway.lat, gateway.lon]],
-            {
-                color: severityColor(sev),
-                weight: 2,
-                opacity: 0.75,
-                dashArray: '6, 6'
-            }
-        ).addTo(map);
+        return;
     }
 
     function zoomIn() {
