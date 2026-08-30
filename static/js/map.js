@@ -1,7 +1,6 @@
 window.MeshMap = (function() {
     let map = null;
     let gatewayLocation = null;
-    let gatewayMarker = null;
     const markers = {};
 
     // Kept in sync with the --sev-* CSS variables in style.css
@@ -43,18 +42,6 @@ window.MeshMap = (function() {
             maxZoom: 19,
             attribution: '&copy; OpenStreetMap contributors'
         }).addTo(map);
-
-        if (gatewayLocation) {
-            gatewayMarker = L.marker([gatewayLocation.lat, gatewayLocation.lon], {
-                icon: L.divIcon({
-                    className: '',
-                    html: `<div class="gateway-marker">\uD83D\uDCE1</div>`,
-                    iconSize: [28, 28],
-                    iconAnchor: [14, 14]
-                }),
-                zIndexOffset: 1000
-            }).addTo(map).bindPopup('Gateway');
-        }
     }
 
     // Rebuilds all markers from the current filtered list.
@@ -136,7 +123,7 @@ window.MeshMap = (function() {
         if (map) map.zoomOut();
     }
 
-    // Fits the map view to every visible marker plus the gateway.
+    // Fits the map view to every visible marker plus the gateway location.
     function fitAll() {
         if (!map) return;
         const points = Object.values(markers).map(m => m.getLatLng());
