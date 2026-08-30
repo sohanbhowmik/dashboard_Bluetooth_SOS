@@ -101,7 +101,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const req = activeRequests.find(r => r.message_id === id);
     if (!req) return;
     window.MeshMap.drawRoute(GATEWAY, req);
-    window.MeshMap.flyTo(req.lat, req.lon, 16);
+    window.MeshMap.flyTo(req.lat, req.lon, 16, req.message_id);
     showDetail(req);
   }
 

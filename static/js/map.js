@@ -101,12 +101,17 @@ window.MeshMap = (function() {
         }
     }
 
-    function flyTo(lat, lon, zoom) {
+    // Flies to a location and opens the popup for a specific request,
+    // identified by messageId (not by lat/lng, since two requests can
+    // share identical coordinates). The popup is opened only after the
+    // flyTo animation finishes, so it doesn't fight the pan and jitter.
+    function flyTo(lat, lon, zoom, messageId) {
         map.flyTo([lat, lon], zoom || 16, { duration: 1.5 });
-        const marker = Object.values(markers).find(
-            m => m.getLatLng().lat === lat && m.getLatLng().lng === lon
-        );
-        if (marker) marker.openPopup();
+
+        const marker = messageId ? markers[messageId] : null;
+        if (!marker) return;
+
+        map.once('moveend', () => marker.openPopup());
     }
 
     // Route line intentionally disabled — kept as a no-op so existing
