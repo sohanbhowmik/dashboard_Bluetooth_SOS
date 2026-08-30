@@ -34,7 +34,7 @@ window.MeshMap = (function() {
 
     function init(gateway) {
         gatewayLocation = gateway || null;
-        map = L.map('map').setView(
+        map = L.map('map', { zoomControl: false }).setView(
             gatewayLocation ? [gatewayLocation.lat, gatewayLocation.lon] : [0, 0],
             gatewayLocation ? 12 : 2
         );

@@ -152,7 +152,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
-  // Map controls (previously unwired)
+  // Map controls
   const btnZoomIn = document.getElementById('btn-zoom-in');
   const btnZoomOut = document.getElementById('btn-zoom-out');
   const btnLocate = document.getElementById('btn-locate');
